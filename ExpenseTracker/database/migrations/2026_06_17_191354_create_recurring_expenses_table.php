@@ -27,7 +27,6 @@ return new class extends Migration
             $table->timestamp('last_logged_at')->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'is_active']);
         });
     }
 

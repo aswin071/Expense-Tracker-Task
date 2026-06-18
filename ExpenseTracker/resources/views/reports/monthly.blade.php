@@ -1,138 +1,114 @@
 <x-app-layout>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <div class="px-4 pt-4 pb-6 max-w-lg mx-auto space-y-4">
+@php
+    $prevMonth = $month == 1 ? 12 : $month - 1;
+    $prevYear  = $month == 1 ? $year - 1 : $year;
+    $nextMonth = $month == 12 ? 1 : $month + 1;
+    $nextYear  = $month == 12 ? $year + 1 : $year;
+    $isCurrentMonth = ($month == now()->month && $year == now()->year);
+    $monthName = \Carbon\Carbon::create()->month($month)->format('F');
+    $monthValue = sprintf('%04d-%02d', $year, $month);
+    $maxMonth   = now()->format('Y-m');
+@endphp
 
-        {{-- ← Month Year → arrow navigator --}}
-        @php
-            $prevMonth = $month == 1 ? 12 : $month - 1;
-            $prevYear  = $month == 1 ? $year - 1 : $year;
-            $nextMonth = $month == 12 ? 1 : $month + 1;
-            $nextYear  = $month == 12 ? $year + 1 : $year;
-            $isCurrentMonth = ($month == now()->month && $year == now()->year);
-        @endphp
+<a href="{{ route('reports.index') }}" class="back-link">&#8592; Reports</a>
 
-        <div class="flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
-            <a href="{{ route('reports.monthly', ['month' => $prevMonth, 'year' => $prevYear]) }}"
-               class="w-11 h-11 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </a>
-
-            <div class="text-center">
-                <p class="font-bold text-gray-900 text-lg">
-                    {{ \Carbon\Carbon::create()->month($month)->format('F') }}
-                </p>
-                <p class="text-sm text-gray-400">{{ $year }}</p>
-            </div>
-
-            <a href="{{ $isCurrentMonth ? '#' : route('reports.monthly', ['month' => $nextMonth, 'year' => $nextYear]) }}"
-               class="w-11 h-11 flex items-center justify-center rounded-xl flex-shrink-0
-                      {{ $isCurrentMonth ? 'bg-gray-50 text-gray-300 pointer-events-none' : 'bg-gray-100 text-gray-600' }}">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </a>
-        </div>
-
-        {{-- Summary cards — stacked vertically --}}
-        <div class="grid grid-cols-1 gap-3">
-            <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl px-5 py-4 flex items-center justify-between">
-                <div>
-                    <p class="text-indigo-200 text-xs uppercase tracking-wide">Total this month</p>
-                    <p class="text-3xl font-bold mt-1">₹{{ number_format($monthlyTotal, 0) }}</p>
-                </div>
-                <div class="text-4xl opacity-30">💸</div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 text-center">
-                    <p class="text-xs text-gray-400 uppercase tracking-wide">Daily avg</p>
-                    <p class="text-xl font-bold text-green-600 mt-1">₹{{ number_format($dailyAverage, 0) }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 text-center">
-                    <p class="text-xs text-gray-400 uppercase tracking-wide">Categories</p>
-                    <p class="text-xl font-bold text-gray-800 mt-1">{{ $categoryTotals->count() }}</p>
-                </div>
-            </div>
-        </div>
-
-        @if ($categoryTotals->isEmpty())
-            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
-                <div class="text-6xl mb-4">📊</div>
-                <p class="text-gray-700 font-semibold text-lg">No data for this month</p>
-                <p class="text-gray-400 text-sm mt-2">
-                    Try a different month, or
-                    <a href="{{ route('expenses.create') }}" class="text-indigo-600 font-medium">log an expense</a>.
-                </p>
-            </div>
+{{-- Month picker row --}}
+<div style="background: #fff; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <a href="{{ route('reports.monthly', ['month' => $prevMonth, 'year' => $prevYear]) }}"
+           style="color: #4f46e5; font-size: 20px; text-decoration: none; padding: 4px 10px; background: #f0f2f5; border-radius: 8px;">&#8592;</a>
+        <span style="font-size: 16px; font-weight: 700; color: #1a1a2e;">{{ $monthName }} {{ $year }}</span>
+        @if (!$isCurrentMonth)
+            <a href="{{ route('reports.monthly', ['month' => $nextMonth, 'year' => $nextYear]) }}"
+               style="color: #4f46e5; font-size: 20px; text-decoration: none; padding: 4px 10px; background: #f0f2f5; border-radius: 8px;">&#8594;</a>
         @else
-
-            {{-- Bar chart — full width, fixed 250px height --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <p class="text-sm font-semibold text-gray-700 mb-3">Spending by Category</p>
-                <div style="height: 250px; position: relative;">
-                    <canvas id="monthlyChart"></canvas>
-                </div>
-            </div>
-
-            {{-- Category progress bars (replaces table) --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 space-y-4">
-                <p class="text-sm font-semibold text-gray-700">Category Breakdown</p>
-
-                @php
-                    $catIcons  = ['food'=>'🍔','transportation'=>'🚗','entertainment'=>'🎬','health'=>'💊','shopping'=>'🛍️','utilities'=>'💡','other'=>'📦'];
-                    $maxAmount = $categoryTotals->max('total') ?: 1;
-                @endphp
-
-                @foreach ($categoryTotals->sortByDesc('total') as $row)
-                    @php $barPct = min(($row->total / $maxAmount) * 100, 100); @endphp
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <div class="flex items-center gap-2">
-                                <span class="text-base">{{ $catIcons[$row->category] ?? '📦' }}</span>
-                                <span class="text-sm font-medium text-gray-700 capitalize">{{ $row->category }}</span>
-                                <span class="text-xs text-gray-400">×{{ $row->count }}</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-sm font-bold text-gray-900">₹{{ number_format($row->total, 0) }}</span>
-                                @if (isset($allTimeTotals[$row->category]))
-                                    <span class="text-xs text-gray-400 ml-1">/ ₹{{ number_format($allTimeTotals[$row->category], 0) }} all‑time</span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2">
-                            <div class="bg-indigo-500 h-2 rounded-full transition-all duration-500"
-                                 style="width: {{ $barPct }}%"></div>
-                        </div>
-                    </div>
-                @endforeach
-
-                <div class="pt-3 border-t border-gray-100 flex justify-between text-sm">
-                    <span class="font-semibold text-gray-700">Total</span>
-                    <span class="font-bold text-indigo-700">₹{{ number_format($monthlyTotal, 2) }}</span>
-                </div>
-            </div>
-
-            {{-- All-time chart --}}
-            @if (!empty($allTimeTotals))
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                    <p class="text-sm font-semibold text-gray-700 mb-3">All-Time by Category</p>
-                    <div style="height: 250px; position: relative;">
-                        <canvas id="allTimeChart"></canvas>
-                    </div>
-                </div>
-            @endif
-
+            <span style="padding: 4px 10px; color: #d1d5db; font-size: 20px; background: #f9fafb; border-radius: 8px;">&#8594;</span>
         @endif
-
     </div>
 
-    @if ($categoryTotals->isNotEmpty())
+    {{-- Direct month/year picker --}}
+    <form method="GET" action="{{ route('reports.monthly') }}" style="display: flex; gap: 8px; align-items: center;">
+        <input type="month" name="monthpicker"
+               id="monthpicker"
+               value="{{ $monthValue }}"
+               max="{{ $maxMonth }}"
+               style="flex: 1; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 12px; font-size: 14px; color: #1a1a2e; outline: none; font-family: inherit; background: #f9fafb;">
+        <button type="submit" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 14px;">Go</button>
+    </form>
+</div>
+
+{{-- Summary cards --}}
+<div style="display: flex; gap: 10px; margin-bottom: 14px;">
+    <div style="flex: 1; background: #4f46e5; border-radius: 14px; padding: 16px; color: #fff; text-align: center;">
+        <div style="font-size: 11px; opacity: 0.8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;">Total</div>
+        <div style="font-size: 20px; font-weight: 800; margin-top: 4px;">&#8377;{{ number_format($monthlyTotal, 0) }}</div>
+    </div>
+    <div style="flex: 1; background: #fff; border-radius: 14px; padding: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;">Daily Avg</div>
+        <div style="font-size: 20px; font-weight: 800; color: #1a1a2e; margin-top: 4px;">&#8377;{{ number_format($dailyAverage, 0) }}</div>
+    </div>
+</div>
+
+@if ($categoryTotals->isEmpty())
+    <div class="card" style="text-align: center; color: #9ca3af; padding: 40px 16px;">
+        <p style="font-size: 14px;">No expenses for this month.</p>
+    </div>
+@else
+
+    {{-- Chart --}}
+    <div class="card" style="padding: 16px; margin-bottom: 14px;">
+        <div class="card-title">Spending by Category</div>
+        <div style="height: 220px;">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+
+    {{-- Category breakdown --}}
+    <div class="section-heading">Breakdown</div>
+
+    @php
+    $catColors = ['food'=>'#f59e0b','transportation'=>'#3b82f6','entertainment'=>'#8b5cf6','health'=>'#22c55e','shopping'=>'#ec4899','utilities'=>'#06b6d4','other'=>'#9ca3af'];
+    @endphp
+
+    <div class="card" style="padding: 0;">
+        @foreach ($categoryTotals->sortByDesc('total') as $row)
+            @php
+                $pct   = $monthlyTotal > 0 ? ($row->total / $monthlyTotal) * 100 : 0;
+                $color = $catColors[$row->category] ?? '#9ca3af';
+            @endphp
+            <div style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div>
+                        <span style="font-size: 14px; font-weight: 600; color: #1a1a2e;">{{ ucfirst($row->category) }}</span>
+                        <span style="font-size: 12px; color: #9ca3af; margin-left: 6px;">{{ $row->count }} items</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 14px; font-weight: 700; color: #1a1a2e;">&#8377;{{ number_format($row->total, 0) }}</div>
+                        <div style="font-size: 11px; color: #9ca3af;">{{ number_format($pct, 0) }}%</div>
+                    </div>
+                </div>
+                <div style="background: #f3f4f6; border-radius: 4px; height: 4px; overflow: hidden;">
+                    <div style="height: 100%; border-radius: 4px; background: {{ $color }}; width: {{ $pct }}%;"></div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
     <script>
+        // Parse the month picker value and redirect with month/year params
+        document.querySelector('form[action="{{ route('reports.monthly') }}"]').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const val = document.getElementById('monthpicker').value; // "YYYY-MM"
+            if (!val) return;
+            const [y, m] = val.split('-');
+            window.location.href = '{{ route('reports.monthly') }}?month=' + parseInt(m) + '&year=' + y;
+        });
+
         const monthlyData = @json($categoryTotals->pluck('total', 'category'));
+        const barColors = @json($catColors);
 
         new Chart(document.getElementById('monthlyChart'), {
             type: 'bar',
@@ -140,10 +116,9 @@
                 labels: Object.keys(monthlyData).map(l => l.charAt(0).toUpperCase() + l.slice(1)),
                 datasets: [{
                     data: Object.values(monthlyData),
-                    backgroundColor: 'rgba(99,102,241,0.75)',
-                    borderColor: 'rgba(99,102,241,1)',
-                    borderWidth: 1,
+                    backgroundColor: Object.keys(monthlyData).map(k => barColors[k] || '#9ca3af'),
                     borderRadius: 6,
+                    borderWidth: 0,
                 }]
             },
             options: {
@@ -153,40 +128,18 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { callback: v => '₹' + v.toLocaleString() }
+                        grid: { color: '#f3f4f6' },
+                        ticks: { callback: v => '₹' + v.toLocaleString(), font: { size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
                     }
                 }
             }
         });
-
-        @if (!empty($allTimeTotals))
-        const allTimeData = @json($allTimeTotals);
-        new Chart(document.getElementById('allTimeChart'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(allTimeData).map(l => l.charAt(0).toUpperCase() + l.slice(1)),
-                datasets: [{
-                    data: Object.values(allTimeData),
-                    backgroundColor: 'rgba(16,185,129,0.75)',
-                    borderColor: 'rgba(16,185,129,1)',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { callback: v => '₹' + v.toLocaleString() }
-                    }
-                }
-            }
-        });
-        @endif
     </script>
-    @endif
+
+@endif
 
 </x-app-layout>

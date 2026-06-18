@@ -3,22 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\BudgetLimit;
-use App\Services\BudgetCoachService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class BudgetLimitController extends Controller
 {
-    public function __construct(private BudgetCoachService $coachService) {}
-
+    // Show the form to edit budget limits
     public function edit(): View
     {
-        $limits = $this->coachService->getLimitsForUser(auth()->id());
+        // Get limits for this user, falling back to defaults
+        $saved = BudgetLimit::where('user_id', auth()->id())
+            ->pluck('amount', 'category')
+            ->toArray();
+
+        $limits = [];
+        foreach (BudgetLimit::DEFAULTS as $cat => $default) {
+            $limits[$cat] = (int) ($saved[$cat] ?? $default);
+        }
 
         return view('coach.limits', compact('limits'));
     }
 
+    // Save updated budget limits
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -40,6 +47,7 @@ class BudgetLimitController extends Controller
         return redirect()->route('coach.index')->with('success', 'Budget limits updated successfully.');
     }
 
+    // Reset all limits back to defaults
     public function reset(): RedirectResponse
     {
         BudgetLimit::where('user_id', auth()->id())->delete();

@@ -4,140 +4,382 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#4f46e5">
-
     <title>{{ config('app.name', 'ExpenseTracker') }}</title>
-
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
     <style>
-        [x-cloak] { display: none !important; }
-        body { padding-bottom: 80px; } /* space for bottom nav */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+        .app-shell {
+            max-width: 430px;
+            margin: 0 auto;
+            background: #f0f2f5;
+            min-height: 100vh;
+            position: relative;
+        }
+        /* Top header */
+        .app-header {
+            background: #fff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e8eaed;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .app-header .brand {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4f46e5;
+            letter-spacing: -0.3px;
+        }
+        .app-header .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        /* Flash messages */
+        .flash-success {
+            background: #dcfce7;
+            border-left: 4px solid #16a34a;
+            color: #15803d;
+            padding: 12px 16px;
+            margin: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .flash-error {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            color: #b91c1c;
+            padding: 12px 16px;
+            margin: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        /* Main content */
+        .page-content {
+            padding: 16px 16px 90px;
+        }
+        /* Bottom nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 430px;
+            background: #fff;
+            border-top: 1px solid #e8eaed;
+            display: flex;
+            z-index: 200;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .bottom-nav a, .bottom-nav button {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 4px 8px;
+            text-decoration: none;
+            font-size: 10px;
+            color: #9ca3af;
+            background: none;
+            border: none;
+            cursor: pointer;
+            gap: 4px;
+            font-family: inherit;
+            transition: color 0.15s;
+        }
+        .bottom-nav a.active, .bottom-nav a:hover {
+            color: #4f46e5;
+        }
+        .bottom-nav .nav-icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+        .bottom-nav .nav-label { font-size: 10px; font-weight: 500; }
+        /* FAB-style add button */
+        .bottom-nav .nav-add {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 4px 8px;
+            text-decoration: none;
+            font-size: 10px;
+            color: #fff;
+            gap: 4px;
+        }
+        .bottom-nav .nav-add .nav-icon-wrap {
+            width: 44px;
+            height: 44px;
+            background: #4f46e5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-top: -18px;
+            box-shadow: 0 4px 12px rgba(79,70,229,0.45);
+        }
+        .bottom-nav .nav-add .nav-label { color: #4f46e5; font-size: 10px; font-weight: 500; }
+        /* Cards */
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        /* Section heading */
+        .section-heading {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            margin-top: 4px;
+        }
+        /* Form styles */
+        .form-group { margin-bottom: 16px; }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #1a1a2e;
+            background: #fff;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.15s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: #4f46e5;
+        }
+        .form-error { color: #dc2626; font-size: 12px; margin-top: 4px; }
+        /* Buttons */
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: #4f46e5;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-secondary {
+            display: block;
+            width: 100%;
+            padding: 13px;
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        .btn-danger {
+            display: inline-block;
+            padding: 7px 14px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-ghost {
+            display: inline-block;
+            padding: 7px 14px;
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        /* Category badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-food       { background: #fef3c7; color: #92400e; }
+        .badge-transportation { background: #dbeafe; color: #1e40af; }
+        .badge-entertainment { background: #ede9fe; color: #5b21b6; }
+        .badge-health     { background: #dcfce7; color: #166534; }
+        .badge-shopping   { background: #fce7f3; color: #9d174d; }
+        .badge-utilities  { background: #e0f2fe; color: #0c4a6e; }
+        .badge-other      { background: #f3f4f6; color: #374151; }
+        /* Status badges */
+        .badge-paid       { background: #dcfce7; color: #15803d; }
+        .badge-overdue    { background: #fee2e2; color: #b91c1c; }
+        .badge-upcoming   { background: #f3f4f6; color: #6b7280; }
+        .badge-active     { background: #dbeafe; color: #1e40af; }
+        .badge-paused     { background: #f3f4f6; color: #9ca3af; }
+        /* Expense list item */
+        .expense-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+            text-decoration: none;
+            color: inherit;
+        }
+        .expense-item:last-child { border-bottom: none; }
+        .expense-item-left { display: flex; align-items: center; gap: 12px; }
+        .expense-cat-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .expense-item-desc { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+        .expense-item-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+        .expense-item-amount { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+        /* Progress bar */
+        .progress-bar-wrap {
+            background: #f3f4f6;
+            border-radius: 6px;
+            height: 6px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s;
+        }
+        /* Divider */
+        .divider { height: 1px; background: #f3f4f6; margin: 12px 0; }
+        /* Page header row */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .page-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        /* Back link */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #4f46e5;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            margin-bottom: 14px;
+        }
     </style>
 </head>
-<body class="font-sans antialiased bg-gray-50 text-gray-900">
+<body>
+<div class="app-shell">
 
-    {{-- Top bar --}}
-    <header class="fixed top-0 inset-x-0 z-40 bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4">
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
-            <span class="text-indigo-600 font-bold text-lg leading-none">💰</span>
-            <span class="font-bold text-gray-800 text-base leading-none">ExpenseTracker</span>
+    <header class="app-header">
+        <span class="brand">ExpenseTracker</span>
+        <a href="{{ route('profile.edit') }}" class="user-avatar">
+            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
         </a>
-
-        <div x-data="{ open: false }" class="relative">
-            <button @click="open = !open"
-                    class="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
-            </button>
-
-            <div x-show="open"
-                 @click.outside="open = false"
-                 x-cloak
-                 class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 text-sm z-50">
-                <div class="px-4 py-2 border-b border-gray-100">
-                    <p class="font-medium text-gray-800 truncate">{{ auth()->user()->name }}</p>
-                    <p class="text-gray-400 text-xs truncate">{{ auth()->user()->email }}</p>
-                </div>
-                <a href="{{ route('profile.edit') }}" class="block px-4 py-2.5 text-gray-700">Profile Settings</a>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="w-full text-left px-4 py-2.5 text-red-600">Log out</button>
-                </form>
-            </div>
-        </div>
     </header>
 
-    {{-- Page content (push down below fixed top bar) --}}
-    <main class="pt-14 min-h-screen">
+    @if (session('success'))
+        <div class="flash-success">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="flash-error">{{ session('error') }}</div>
+    @endif
 
-        {{-- Flash messages --}}
-        @if (session('success'))
-            <div x-data="{ show: true }" x-show="show" x-cloak
-                 class="mx-4 mt-4 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <span>{{ session('success') }}</span>
-                <button @click="show = false" class="ml-auto text-green-600">✕</button>
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div x-data="{ show: true }" x-show="show" x-cloak
-                 class="mx-4 mt-4 bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                <span>{{ session('error') }}</span>
-                <button @click="show = false" class="ml-auto text-red-600">✕</button>
-            </div>
-        @endif
-
+    <main class="page-content">
         {{ $slot }}
     </main>
 
-    {{-- Fixed bottom navigation bar --}}
-    <nav class="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 h-16 safe-bottom">
-        <div class="flex items-center justify-around h-full max-w-lg mx-auto px-2 relative">
-
-            {{-- Home --}}
-            <a href="{{ route('dashboard') }}"
-               class="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-3
-                      {{ request()->routeIs('dashboard') ? 'text-indigo-600' : 'text-gray-400' }}">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
-                <span class="text-[10px] font-medium">Home</span>
-            </a>
-
-            {{-- Expenses --}}
-            <a href="{{ route('expenses.index') }}"
-               class="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-3
-                      {{ request()->routeIs('expenses.*') ? 'text-indigo-600' : 'text-gray-400' }}">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-                <span class="text-[10px] font-medium">Expenses</span>
-            </a>
-
-            {{-- FAB — Add expense --}}
-            <a href="{{ route('expenses.create') }}"
-               class="flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg
-                      -mt-6 border-4 border-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-                </svg>
-            </a>
-
-            {{-- Reports --}}
-            <a href="{{ route('reports.index') }}"
-               class="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-3
-                      {{ request()->routeIs('reports.*') ? 'text-indigo-600' : 'text-gray-400' }}">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                <span class="text-[10px] font-medium">Reports</span>
-            </a>
-
-            {{-- Coach --}}
-            <a href="{{ route('coach.index') }}"
-               class="flex flex-col items-center justify-center gap-0.5 min-w-[48px] min-h-[48px] px-3
-                      {{ request()->routeIs('coach.*') ? 'text-indigo-600' : 'text-gray-400' }}">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                </svg>
-                <span class="text-[10px] font-medium">Coach</span>
-            </a>
-
-        </div>
+    <nav class="bottom-nav">
+        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+            <span class="nav-label">Home</span>
+        </a>
+        <a href="{{ route('expenses.index') }}" class="{{ request()->routeIs('expenses.*') ? 'active' : '' }}">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            <span class="nav-label">Expenses</span>
+        </a>
+        <a href="{{ route('expenses.create') }}" class="nav-add">
+            <span class="nav-icon-wrap">
+                <svg width="24" height="24" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            <span class="nav-label">Add</span>
+        </a>
+        <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>
+            <span class="nav-label">Reports</span>
+        </a>
+        <a href="{{ route('coach.index') }}" class="{{ request()->routeIs('coach.*') ? 'active' : '' }}">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+            <span class="nav-label">Coach</span>
+        </a>
     </nav>
 
+</div>
 </body>
 </html>

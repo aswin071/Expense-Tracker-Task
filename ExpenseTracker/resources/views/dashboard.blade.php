@@ -1,142 +1,115 @@
 <x-app-layout>
 
-    <div class="px-4 pt-4 pb-6 space-y-4 max-w-lg mx-auto">
+@php
+$catColors = [
+    'food'           => ['bg' => '#fef3c7', 'text' => '#92400e'],
+    'transportation' => ['bg' => '#dbeafe', 'text' => '#1e40af'],
+    'entertainment'  => ['bg' => '#ede9fe', 'text' => '#5b21b6'],
+    'health'         => ['bg' => '#dcfce7', 'text' => '#166534'],
+    'shopping'       => ['bg' => '#fce7f3', 'text' => '#9d174d'],
+    'utilities'      => ['bg' => '#e0f2fe', 'text' => '#0c4a6e'],
+    'other'          => ['bg' => '#f3f4f6', 'text' => '#374151'],
+];
+@endphp
 
-        {{-- Auto-log banner --}}
-        @if ($autoLogged->isNotEmpty())
-            <div class="bg-green-500 text-white px-4 py-3 rounded-2xl flex items-center gap-3">
-                <span class="text-xl flex-shrink-0">🔄</span>
-                <p class="text-sm font-medium">
-                    <strong>{{ $autoLogged->count() }}</strong>
-                    recurring expense{{ $autoLogged->count() > 1 ? 's' : '' }} auto-logged today.
-                    <a href="{{ route('expenses.index') }}" class="underline ml-1">View</a>
-                </p>
-            </div>
-        @endif
-
-        {{-- Greeting + monthly total card --}}
-        <div class="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-3xl p-5">
-            @php
-                $hour     = now()->hour;
-                $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
-            @endphp
-            <p class="text-indigo-200 text-sm font-medium">{{ $greeting }},</p>
-            <p class="text-xl font-bold mt-0.5">{{ auth()->user()->name }} 👋</p>
-
-            <div class="mt-5">
-                <p class="text-indigo-300 text-xs uppercase tracking-wider">Spent this month</p>
-                <p class="text-4xl font-bold mt-1">₹{{ number_format($monthlyTotal, 0) }}</p>
-                <p class="text-indigo-300 text-xs mt-1">{{ now()->format('F Y') }}</p>
-            </div>
-
-            <a href="{{ route('reports.monthly') }}"
-               class="mt-4 inline-flex items-center gap-1 text-indigo-200 text-sm">
-                View full report
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </a>
-        </div>
-
-        {{-- Category spending pills (horizontal scroll) --}}
-        <div>
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">This month by category</h3>
-            <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
-                @php
-                    $catIcons = ['food'=>'🍔','transportation'=>'🚗','entertainment'=>'🎬','health'=>'💊','shopping'=>'🛍️','utilities'=>'💡','other'=>'📦'];
-                @endphp
-                @foreach ($categoryTotals as $cat => $total)
-                    @if ($total > 0)
-                        <a href="{{ route('expenses.index', ['category' => $cat]) }}"
-                           class="flex-shrink-0 bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 text-center min-w-[90px]">
-                            <div class="text-xl">{{ $catIcons[$cat] ?? '📦' }}</div>
-                            <div class="text-xs text-gray-500 mt-1 capitalize">{{ $cat }}</div>
-                            <div class="text-sm font-bold text-gray-800 mt-0.5">₹{{ number_format($total, 0) }}</div>
-                        </a>
-                    @endif
-                @endforeach
-                @if (collect($categoryTotals)->sum() === 0.0)
-                    <p class="text-sm text-gray-400 py-3">No spending this month yet.</p>
-                @endif
-            </div>
-        </div>
-
-        {{-- Recurring schedule --}}
-        @if ($recurringExpenses->isNotEmpty())
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Monthly schedule</h3>
-                    <a href="{{ route('recurring.index') }}" class="text-indigo-600 text-sm font-medium">Manage</a>
-                </div>
-                <div class="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
-                    @foreach ($recurringExpenses as $rec)
-                        <div class="flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm px-3 py-3 min-w-[120px]">
-                            <div class="flex items-center gap-1.5 mb-2">
-                                <span class="text-base">{{ $catIcons[$rec->category] ?? '📦' }}</span>
-                                <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">🔁 AUTO</span>
-                            </div>
-                            <p class="text-xs font-semibold text-gray-800 truncate">{{ $rec->description }}</p>
-                            <p class="text-sm font-bold text-gray-900 mt-1">₹{{ number_format($rec->amount, 0) }}</p>
-                            <p class="text-[10px] text-gray-400 mt-0.5">Every {{ $rec->day_of_month }}{{ in_array($rec->day_of_month, [1,21]) ? 'st' : (in_array($rec->day_of_month, [2,22]) ? 'nd' : (in_array($rec->day_of_month, [3,23]) ? 'rd' : 'th')) }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-
-        {{-- Recent expenses --}}
-        <div>
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Recent expenses</h3>
-                <a href="{{ route('expenses.index') }}" class="text-indigo-600 text-sm font-medium">See all</a>
-            </div>
-
-            @if ($recentExpenses->isEmpty())
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-                    <div class="text-5xl mb-3">🧾</div>
-                    <p class="text-gray-500 font-medium">No expenses yet</p>
-                    <p class="text-gray-400 text-sm mt-1">Tap the + button to log your first one.</p>
-                </div>
-            @else
-                <div class="space-y-2">
-                    @foreach ($recentExpenses as $expense)
-                        <a href="{{ route('expenses.show', $expense) }}"
-                           class="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-lg flex-shrink-0">
-                                {{ $catIcons[$expense->category] ?? '📦' }}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-1.5">
-                                    <p class="text-sm font-semibold text-gray-800 truncate">{{ $expense->description }}</p>
-                                    @if (str_ends_with($expense->description, '(Auto)'))
-                                        <span class="flex-shrink-0 bg-indigo-100 text-indigo-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">🔁</span>
-                                    @endif
-                                </div>
-                                <p class="text-xs text-gray-400 mt-0.5 capitalize">{{ $expense->category }} · {{ $expense->date->format('d M') }}</p>
-                            </div>
-                            <div class="text-sm font-bold text-gray-900 flex-shrink-0">
-                                ₹{{ number_format($expense->amount, 0) }}
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-            @endif
-        </div>
-
-        {{-- Quick links --}}
-        <div class="grid grid-cols-2 gap-3">
-            <a href="{{ route('recurring.index') }}"
-               class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-                <span class="text-2xl">🔁</span>
-                <span class="text-sm font-semibold text-gray-700">Recurring</span>
-            </a>
-            <a href="{{ route('profile.edit') }}"
-               class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-                <span class="text-2xl">⚙️</span>
-                <span class="text-sm font-semibold text-gray-700">Profile</span>
-            </a>
-        </div>
-
+{{-- Hero spend card --}}
+<div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 18px; padding: 22px 20px 20px; margin-bottom: 16px; color: #fff;">
+    <p style="font-size: 12px; opacity: 0.8; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">
+        {{ now()->format('F Y') }}
+    </p>
+    <p style="font-size: 36px; font-weight: 800; margin: 4px 0 2px; letter-spacing: -1px;">
+        &#8377;{{ number_format($monthlyTotal, 0) }}
+    </p>
+    <p style="font-size: 13px; opacity: 0.75;">Total spent this month</p>
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <a href="{{ route('expenses.create') }}"
+           style="flex: 1; background: rgba(255,255,255,0.2); border-radius: 10px; padding: 10px; text-align: center; color: #fff; text-decoration: none; font-size: 13px; font-weight: 600;">
+            + Add Expense
+        </a>
+        <a href="{{ route('reports.monthly') }}"
+           style="flex: 1; background: rgba(255,255,255,0.2); border-radius: 10px; padding: 10px; text-align: center; color: #fff; text-decoration: none; font-size: 13px; font-weight: 600;">
+            View Report
+        </a>
     </div>
+</div>
+
+{{-- Recent expenses --}}
+<div class="section-heading">Recent Expenses</div>
+
+@if ($recentExpenses->isEmpty())
+    <div class="card" style="text-align: center; color: #9ca3af; padding: 32px 16px;">
+        <p style="font-size: 14px; margin-bottom: 14px;">No expenses yet. Add your first one!</p>
+        <a href="{{ route('expenses.create') }}" class="btn-primary" style="display: inline-block; width: auto; padding: 10px 24px; font-size: 14px;">Add Expense</a>
+    </div>
+@else
+    <div class="card" style="padding: 4px 16px;">
+        @foreach ($recentExpenses as $expense)
+            @php $c = $catColors[$expense->category] ?? $catColors['other']; @endphp
+            <a href="{{ route('expenses.show', $expense) }}" class="expense-item">
+                <div class="expense-item-left">
+                    <div class="expense-cat-icon" style="background: {{ $c['bg'] }}; color: {{ $c['text'] }}; font-size: 12px; font-weight: 800; letter-spacing: 0;">
+                        {{ strtoupper(substr($expense->category, 0, 2)) }}
+                    </div>
+                    <div>
+                        <div class="expense-item-desc">{{ $expense->description }}</div>
+                        <div class="expense-item-meta">{{ ucfirst($expense->category) }} &middot; {{ $expense->date->format('d M') }}</div>
+                    </div>
+                </div>
+                <span class="expense-item-amount">&#8377;{{ number_format($expense->amount, 0) }}</span>
+            </a>
+        @endforeach
+    </div>
+    <a href="{{ route('expenses.index') }}" style="display: block; text-align: center; color: #4f46e5; font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 16px;">
+        View all expenses &rarr;
+    </a>
+@endif
+
+{{-- Recurring schedule --}}
+<div class="section-heading">Recurring Schedule</div>
+
+@if ($recurring->isEmpty())
+    <div class="card" style="text-align: center; color: #9ca3af; padding: 24px 16px;">
+        <p style="font-size: 14px;">No recurring expenses set up.</p>
+        <a href="{{ route('recurring.index') }}" class="btn-ghost" style="display: inline-block; margin-top: 10px; font-size: 13px;">Set up recurring</a>
+    </div>
+@else
+    @php $today = now()->day; @endphp
+    <div class="card" style="padding: 4px 0;">
+        @foreach ($recurring as $item)
+            @php
+                $paidThisMonth = $item->last_logged_at &&
+                    $item->last_logged_at->month === now()->month &&
+                    $item->last_logged_at->year === now()->year;
+
+                if ($paidThisMonth) {
+                    $statusLabel = 'Paid';
+                    $statusClass = 'badge-paid';
+                } elseif ($item->is_active && $item->day_of_month < $today) {
+                    $statusLabel = 'Overdue';
+                    $statusClass = 'badge-overdue';
+                } elseif ($item->day_of_month == $today) {
+                    $statusLabel = 'Due Today';
+                    $statusClass = 'badge-overdue';
+                } else {
+                    $statusLabel = 'Day ' . $item->day_of_month;
+                    $statusClass = 'badge-upcoming';
+                }
+            @endphp
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f3f4f6;">
+                <div>
+                    <div style="font-size: 14px; font-weight: 600; color: #1a1a2e;">{{ $item->description }}</div>
+                    <div style="font-size: 12px; color: #9ca3af; margin-top: 2px;">{{ ucfirst($item->category) }}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; font-weight: 700; color: #1a1a2e;">&#8377;{{ number_format($item->amount, 0) }}</div>
+                    <span class="badge {{ $statusClass }}" style="margin-top: 4px; display: inline-block;">{{ $statusLabel }}</span>
+                </div>
+            </div>
+        @endforeach
+    </div>
+    <a href="{{ route('recurring.index') }}" style="display: block; text-align: center; color: #4f46e5; font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 16px;">
+        Manage recurring &rarr;
+    </a>
+@endif
 
 </x-app-layout>

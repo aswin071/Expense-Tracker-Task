@@ -1,88 +1,74 @@
 <x-app-layout>
 
-    <div class="px-4 pt-4 pb-6 max-w-lg mx-auto space-y-4">
+<a href="{{ route('coach.index') }}" class="back-link">&#8592; Budget Coach</a>
 
-        {{-- Header --}}
-        <div class="flex items-center gap-3">
-            <a href="{{ route('coach.index') }}"
-               class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 flex-shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-xl font-bold text-gray-900">Manage Limits</h1>
-                <p class="text-sm text-gray-400">Set monthly budget per category</p>
-            </div>
-        </div>
+<div class="section-heading">Edit Budget Limits</div>
 
-        @if (session('success'))
-            <div class="bg-green-50 border border-green-200 text-green-700 rounded-2xl px-4 py-3 text-sm font-medium flex items-center gap-2">
-                <span>✅</span> {{ session('success') }}
-            </div>
-        @endif
+<p style="font-size: 13px; color: #9ca3af; margin-bottom: 16px; margin-top: -8px;">
+    Set monthly spending limits per category.
+</p>
 
-        <div class="bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3 text-sm text-indigo-700">
-            💡 These limits are <strong>guidelines</strong> — not hard caps. They power the colour-coded progress bars on the Budget Coach page.
-        </div>
+@if ($errors->any())
+    <div style="background: #fee2e2; border-left: 4px solid #dc2626; color: #b91c1c; padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 13px;">
+        @foreach ($errors->all() as $error)
+            <div>{{ $error }}</div>
+        @endforeach
+    </div>
+@endif
 
-        @php
-            $catIcons = ['food'=>'🍔','transportation'=>'🚗','entertainment'=>'🎬','health'=>'💊','shopping'=>'🛍️','utilities'=>'💡','other'=>'📦'];
-            $catLabels = ['food'=>'Food & Dining','transportation'=>'Transportation','entertainment'=>'Entertainment','health'=>'Health & Wellness','shopping'=>'Shopping','utilities'=>'Utilities & Bills','other'=>'Other'];
-        @endphp
+@php
+$catColors = [
+    'food'           => ['bg' => '#fef3c7', 'text' => '#92400e'],
+    'transportation' => ['bg' => '#dbeafe', 'text' => '#1e40af'],
+    'entertainment'  => ['bg' => '#ede9fe', 'text' => '#5b21b6'],
+    'health'         => ['bg' => '#dcfce7', 'text' => '#166534'],
+    'shopping'       => ['bg' => '#fce7f3', 'text' => '#9d174d'],
+    'utilities'      => ['bg' => '#e0f2fe', 'text' => '#0c4a6e'],
+    'other'          => ['bg' => '#f3f4f6', 'text' => '#374151'],
+];
+@endphp
 
-        <form method="POST" action="{{ route('coach.limits.update') }}" class="space-y-3">
-            @csrf
+<div class="card" style="padding: 0; margin-bottom: 12px;">
+    <form method="POST" action="{{ route('coach.limits.update') }}">
+        @csrf
 
-            @foreach ($limits as $category => $amount)
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4">
-                    <div class="flex items-center gap-3 mb-3">
-                        <span class="text-2xl">{{ $catIcons[$category] ?? '📦' }}</span>
-                        <div>
-                            <p class="font-semibold text-gray-900">{{ $catLabels[$category] ?? ucfirst($category) }}</p>
-                            <p class="text-xs text-gray-400">Default: ₹{{ number_format(\App\Models\BudgetLimit::DEFAULTS[$category] ?? 0) }}</p>
-                        </div>
-                    </div>
-                    <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-base pointer-events-none">₹</span>
+        @foreach ($limits as $category => $amount)
+            @php $c = $catColors[$category] ?? $catColors['other']; @endphp
+            <div style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: {{ $c['bg'] }}; color: {{ $c['text'] }}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0;">
+                    {{ strtoupper(substr($category, 0, 2)) }}
+                </div>
+                <div style="flex: 1;">
+                    <label for="limit_{{ $category }}" style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px;">{{ ucfirst($category) }}</label>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 14px; color: #9ca3af;">&#8377;</span>
                         <input type="number"
                                name="limits[{{ $category }}]"
+                               id="limit_{{ $category }}"
                                value="{{ old('limits.' . $category, $amount) }}"
-                               min="100"
-                               max="999999"
-                               inputmode="numeric"
-                               required
-                               class="w-full border border-gray-200 rounded-xl pl-8 pr-4 py-3 text-base font-semibold text-gray-900
-                                      focus:outline-none focus:ring-2 focus:ring-indigo-500
-                                      @error('limits.' . $category) border-red-400 bg-red-50 @enderror">
-                        @error('limits.' . $category)
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                               min="100" max="999999" required
+                               style="flex: 1; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 9px 12px; font-size: 15px; font-weight: 600; color: #1a1a2e; outline: none; font-family: inherit;">
                     </div>
+                    @error('limits.' . $category)
+                        <p style="color: #dc2626; font-size: 12px; margin-top: 3px;">{{ $message }}</p>
+                    @enderror
                 </div>
-            @endforeach
+            </div>
+        @endforeach
 
-            <button type="submit"
-                    class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl text-base min-h-[56px]
-                           flex items-center justify-center gap-2 shadow-lg shadow-indigo-200">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                Save Limits
-            </button>
-        </form>
+        <div style="padding: 16px;">
+            <button type="submit" class="btn-primary">Save Limits</button>
+        </div>
+    </form>
+</div>
 
-        {{-- Reset to defaults --}}
-        <form method="POST" action="{{ route('coach.limits.reset') }}" class="pb-2"
-              onsubmit="return confirm('Reset all limits back to defaults?')">
-            @csrf
-            @method('DELETE')
-            <button type="submit"
-                    class="w-full border border-gray-200 text-gray-500 font-medium py-3 rounded-2xl text-sm min-h-[44px]">
-                Reset to defaults
-            </button>
-        </form>
-
-    </div>
+<form method="POST" action="{{ route('coach.limits.reset') }}"
+      onsubmit="return confirm('Reset all limits back to defaults?')">
+    @csrf
+    @method('DELETE')
+    <button type="submit" class="btn-secondary" style="font-size: 14px;">
+        Reset to defaults
+    </button>
+</form>
 
 </x-app-layout>
